@@ -1,21 +1,28 @@
 require 'resque/worker'
 
-class Resque::Pool
-  module PooledWorker
-    def shutdown_with_pool
-      shutdown_without_pool || Process.ppid == 1
-    end
+# TODO: Add tests
+class Resque::Worker
+  alias_method :__initialize, :initialize
 
-    def self.included(base)
-      base.instance_eval do
-        alias_method :shutdown_without_pool, :shutdown?
-        alias_method :shutdown?, :shutdown_with_pool
-      end
-    end
-
+  def initialize(*args)
+    @pool_master_pid = Process.pid
+    __initialize(*args)
   end
-end
 
-Resque::Worker.class_eval do
-  include Resque::Pool::PooledWorker
+  alias_method :__shutdown?, :shutdown?
+
+  def shutdown?
+    return true if __shutdown?
+    pooled? && pool_master_has_gone_away?
+  end
+
+  private
+
+  def pooled?
+    @pool_master_pid != Process.pid
+  end
+
+  def pool_master_has_gone_away?
+    Process.ppid == 1
+  end
 end
