@@ -5,7 +5,7 @@ class Resque::Worker
   alias_method :__initialize, :initialize
 
   def initialize(*args)
-    @pool_master_pid = Process.pid
+    @__original_pid = Process.pid
     __initialize(*args)
   end
 
@@ -19,7 +19,7 @@ class Resque::Worker
   private
 
   def pooled?
-    @pool_master_pid != Process.pid
+    @__original_pid != Process.pid
   end
 
   def pool_master_has_gone_away?
